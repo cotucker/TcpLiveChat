@@ -1,48 +1,59 @@
-import {Socket} from "net";
+import {WebSocket} from "ws";
 import * as readline from 'readline';
-import { clearData } from "./tcp_server";
-// import { getProcess } from "./app";
 
-// const HOST: string = "0.tcp.ngrok.io";
-// const PORT: number = 17023;
-
-const HOST: string = "127.0.0.1";
-const PORT: number = 2000;
+const TUNNEL_URL: string = "ws://localhost:3000";
+// const TUNNEL_URL: string = "wss://gb-associations-atomic-constitutional.trycloudflare.com";
 
 const rl = readline.createInterface({
     input: process.stdin,
     output: process.stdout,
   });
 
-const socket: Socket = new Socket();
+try {
+    const socket: WebSocket = new WebSocket(TUNNEL_URL);
 
-
-socket.connect(PORT, HOST);
-
-
-socket.on("data", (data: Buffer) => {
-    console.log("\n" + data.toString());
-})
-
-socket.on("connect", () => {
-    console.log("Connected to server");
-})
-sent_message();
-
-function sent_message() {
-    rl.question('Enter message: ', (answer) => {
-        if(answer == "/q") {
-           rl.close();
-           socket.end();
-           return;
-        } else {
-            if(answer == "/clear") {
-                console.clear();
-                // clearData;
-                sent_message();
-            }
-            socket.write(answer);
-            sent_message();
-        }
+    socket.on("open", () => {
+        console.log("Connected to server");
     })
-}
+
+    socket.on("message", (data: Buffer) => {
+        console.log("\n" + data.toString());
+    })
+
+    sent_message();
+
+    function sent_message() {
+        rl.question('Enter message: ', (answer: string) => {
+
+            switch (answer) {
+                case "/q":
+                    rl.close();
+                    socket.close();
+                    return;
+                case "/clear":
+                    console.clear();
+                    // clearData;
+                    sent_message();
+                    break;
+                case "":
+                    sent_message();
+                    break;
+                case "/off":
+                    rl.close();
+                    socket.send('0');
+                    socket.close();
+                    console.log("Shutting down server...");
+                    return;
+
+                default:
+                    socket.send(answer);
+                    sent_message();
+                    break;
+            }
+            });
+        }
+    } catch (error) {
+        console.error("Connection failed...");
+        rl.close();
+        process.exit(1);
+    }
