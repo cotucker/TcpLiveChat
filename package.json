@@ -12,12 +12,14 @@
   "license": "ISC",
   "description": "",
   "devDependencies": {
+    "@types/chalk": "^0.4.31",
     "@types/express": "^5.0.1",
     "@types/node": "^22.14.0",
     "@types/ws": "^8.18.1",
     "typescript": "^5.8.3"
   },
   "dependencies": {
+    "chalk": "^5.4.1",
     "child_process": "^1.0.2",
     "express": "^5.1.0",
     "http": "^0.0.1-security",
