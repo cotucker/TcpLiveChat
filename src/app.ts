@@ -1,12 +1,13 @@
-import express, {Application, Request, Response} from "express";
+// import express, {Application, Request, Response} from "express";
 import {Server} from "http";
-import path from "path";
-import routes, { updateTcpData } from "./routes/index";
+import * as http from "http";
+// import path from "path";
+// import routes, { updateTcpData } from "./routes/index";
 import chalk from "chalk";
 // import { ChatRoom } from "./chat_room";
 import {Server as WSServer, WebSocket as WebSocket} from "ws";
 
-const app: Application = express();
+// const app: Application = express();
 
 let receivedTcpData: string = '';
 let chatRooms: WebSocket[] = [];
@@ -34,26 +35,24 @@ const listClients = (): string => {
 const closeServer = () => {
     wsServer.close(() => {
         console.log('WebSocket server closed');
-        // process.exit(0);
     });
     server.close(() => {
         console.log('Server closed');
-        // process.exit(0);
     });
 };
 
-app.set('views', path.join(__dirname, '..', 'src', 'views'));
-app.set('view engine', 'pug');
 
-app.use(express.static('public'));
-app.use('/', routes);
+const server: Server = http.createServer((req, res) => {
+    console.log('Received request for %s', req.url);
+    res.writeHead(200, {'Content-Type': 'text/plain'});
+    res.end('Hello, World!\n');
+});
 
-const server: Server = app.listen(3000, () => {
-    console.log("Express server has started on port 3000");
-  });
+server.listen(3000, () => {
+    console.log('HTTP server has started on port 3000');
+});
 
-
-  console.log(server.address());
+console.log(server.address());
 
 const wsServer: WSServer = new WSServer({server: server}, () => {
     console.log('WebSocket server has started on port 3000');
@@ -74,11 +73,11 @@ wsServer.on('connection', (ws: WebSocket) => {
         let message: string = '', comment = '';
         let recipient_id: string = chatId;
         if (parsedData.length > 2 && parsedData[1].startsWith("/")) {
-            comment = "Messege from" + chatId + ": ";
+            comment = chalk.cyan(chalk.bgBlack("@" + chatId + ":")) + " ";
             recipient_id = parsedData[1].replace("/", "");
             message = parsedData.slice(2).join(" ");
         } else if (parsedData.length > 1) {
-            comment = "Echo from server: "
+            comment = chalk.black("Echo from server: ");
             message = parsedData.slice(1).join(" ");
         }
 
@@ -88,13 +87,13 @@ wsServer.on('connection', (ws: WebSocket) => {
             if(message.length == 0){
 
                 chats.set(chatId, ws);
-                console.log("New client regesterd: ID =", chatId);
-                ws.send("All clients:\n" + listClients());
+                console.log(chalk.green("New client regesterd: ID =", chatId));
+                ws.send(chalk.green("All clients:\n" + listClients()));
                 return;
             } else {
                 let recipient: WebSocket | undefined = chats.get(recipient_id);
                 if(recipient == undefined){
-                    ws.send("User not found");
+                    ws.send(chalk.red("User not found"));
                     return;
                 }
                 switch(message){
@@ -103,12 +102,12 @@ wsServer.on('connection', (ws: WebSocket) => {
                         closeServer();
                         break;
                     case "/list":
-                        recipient.send("All clients:\n" + listClients());
+                        recipient.send(chalk.green("All clients:\n" + listClients()));
                         break;
                     case "/q":
                         chats.delete(chatId);
                     default:
-                        recipient.send(chalk.italic(comment + message));
+                        recipient.send(chalk.italic(comment) + chalk.black(message));
                         console.log(chalk.italic('Received message from user:', chatId, ":", message, "---", chatId.length));
                 }
             }
